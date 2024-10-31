@@ -6,8 +6,8 @@ import math
 
 class Object: pass
 
-def pprint(str):
-    if False:
+def pprint(str, file=sys.stderr, flush=True):
+    if True:
         print(str, file=sys.stderr, flush=True)
 
 def print_entity(entity_type, owner, x, y, param_1, param_2):
@@ -21,18 +21,25 @@ def print_entity(entity_type, owner, x, y, param_1, param_2):
     if entity_type == 2:
         entity_str += f"object at ({x}, {y}) wih value {param_1}"
     
-    print(entity_str, file=sys.stderr, flush=True)
+    pprint(entity_str)
 
 def dist(pos, player, acc = {}):
     if player.pos == me.pos:
         if player.pos == pos:
-            return 1
+            return 0
+            # return 1
         elif pos in acc:
-            return len(acc[pos]) + 1
+            
+            # pprint(f"dist {pos=} {acc[pos]=}")
+            return len(acc[pos])
         else:
             return 100
     else:
         return abs(pos[0] - player.pos[0]) + abs(pos[1] - player.pos[1])
+
+def is_safe(pos, safe, path):
+    # pprint(f"is_safe {pos=} r={not pos in safe or not len(path)+1 in safe[pos]}")
+    return not pos in safe or not len(path)+1 in safe[pos]
 
 """
 def dfs(pos, acc, inacc):
@@ -91,15 +98,15 @@ def bfs(pos, safe):
     steps = 0
     
     q = [(pos, steps)]
-    # print(f"bfs {bombs=} {p not in bombs=} {not bombs=}", file=sys.stderr, flush=True)
+    # pprint(f"bfs {bombs=} {p not in bombs=} {not bombs=}")
 
     while q:
         p, steps = q.pop(0)
-        # print(f"bfs {p=} {p in grid=}", file=sys.stderr, flush=True)
+        # pprint(f"bfs {p=} {p in grid=}")
 
         if p in grid and not p in acc:
             # unexplored cell in grid
-            # print(f"bfs {grid[p]=} {p not in bombs=} {not bombs=}", file=sys.stderr, flush=True)
+            # pprint(f"bfs {grid[p]=} {p not in bombs=} {not bombs=}")
 
             if p == pos:
                 # my pos: 1 step because can stay here
@@ -137,80 +144,107 @@ def bfs(pos, safe):
     # steps = 0
 
     q = [(pos, [])]
-    # print(f"bfs {bombs=} {p not in bombs=} {not bombs=}", file=sys.stderr, flush=True)
+    # pprint(f"bfs {bombs=} {p not in bombs=} {not bombs=}")
 
     while q:
         # to break the outer while
-        continue_q = False
+        # continue_q = False
     
         p, path = q.pop(0)
-        # print(f"bfs {p=} {p in grid=}", file=sys.stderr, flush=True)
+        if path and path[0] == ((0, 11)):
+            pprint(f"bfs {p=} {path=}")
 
         if p in grid and not p in acc:
             # unexplored cell in grid
-            # print(f"bfs {grid[p]=} {p not in bombs=} {not bombs=}", file=sys.stderr, flush=True)
+            # pprint(f"bfs {grid[p]=} {p not in bombs=} {not bombs=}")
+
+            is_target_reached = path and path[-1] == p
+            is_locked_by_bomb = p in bombs and p != pos and bombs[p].rounds_nb >= dist(p, me, acc)
+            is_cell_safe = is_safe(p, safe, path)
 
             if p == pos:
-                acc[p] = []
+                acc[p] = path
 
                 # my pos: 1 step because can stay here if not inacc
-                if p in safe and not dist(p, me, acc)+1 in safe[p]:
-                    q.append((p, [pos]))
+                # if p in safe and not dist(p, me, acc)+1 in safe[p]:
+                if is_cell_safe:
+                    q.append((p, path + [p]))
 
                 x, y = p
                 l = [(x+1, y), (x-1, y), (x, y+1), (x, y-1)]
                 for p2 in l:
                     q.append((p2, []))
 
-            elif grid[p] == "." and (p not in bombs or p == pos):
+            elif grid[p] == "." and not is_target_reached and not is_locked_by_bomb:
                 # not wall or crate or bomb (bomb placed still accessible until leaving cell)
                 acc[p] = path
+                # pprint(f"{p=} {acc[p]=}2")
+
+                is_last_cell_safe = path and  is_safe(path[-1], safe, path)
 
                 # if pos == (8,8) and p == (9,8) and p in safe and p in acc:
-                #     print(f"{safe[p]=}", file=sys.stderr, flush=True)
-                #     print(f"{len(acc[p])=}", file=sys.stderr, flush=True)
+                #     pprint(f"{safe[p]=}")
+                #     pprint(f"{len(acc[p])=}")
                     
                 # cell considered inacc if explodes in the number of moves to reach it
                 # while p in safe and len(acc[p])+2 in safe[p]:
-                while p in safe and dist(p, me, acc)+1 in safe[p]:
-                    # wait 1 round: re-add the last cell in path if accessible
-                    if path and path[-1] in safe and not dist(p, me, acc)+1 in safe[path[-1]]:
+                # while p in safe and dist(p, me, acc)+1 in safe[p]:
+                #     # wait 1 round: re-add the last cell in path if accessible
+                #     if path and path[-1] in safe and not dist(p, me, acc)+1 in safe[path[-1]]:
+                #         # acc[p].append(path[-1])
+                #         q.append((p, acc[p] + p))
+                #     else:
+                #         continue_q = True
+                #         break
+
+                # if continue_q:
+                #     continue
+                # wait 1 round: re-add the last cell in path if accessible
+                # if not is_cell_safe and is_last_cell_safe:
+                #     acc[p].append(path[-1])
+                #     q.append((p, acc[p]))
+                #     pprint(f"    continue")
+                #     continue
+                if is_last_cell_safe:
+                    q.append((p, acc[p] + [path[-1]]))
+
+                    if not is_cell_safe:
                         acc[p].append(path[-1])
-                    else:
-                        continue_q = True
-                        break
-
-                if continue_q:
+                
+                if not is_cell_safe:
+                    pprint(f"    continue")
                     continue
-
+                
                 # cell considered inacc if a player is on it with bomb available and more than 1 cell from us
                 # if p in players and players[p].bomb_available and len(acc[p]) > 0:
-                #     print("in", file=sys.stderr, flush=True)
-                #     print(f"{players[p].bomb_available=}", file=sys.stderr, flush=True)
-                #     print(f"{len(acc[p])=}", file=sys.stderr, flush=True)
+                #     pprint("in")
+                #     pprint(f"{players[p].bomb_available=}")
+                #     pprint(f"{len(acc[p])=}")
                 #     continue
 
                 # cell considered inacc if a player can get to it faster than me
-                # bonus: only true if he has a bomb available or will get one before i reach the cell
+                # todo: only true if he has a bomb available or will get one before i reach the cell
                 for _, player in players.items():
-                    # print(f"", file=sys.stderr, flush=True)
+                    # pprint(f"")
                     if dist(p, player)+1 < dist(p, me, acc) and dist(p, player) < 4:
-                        print(f"{p=} {dist(p, player)=} {dist(p, me, acc)=}", file=sys.stderr, flush=True)
-                        continue_q = True
+                        # pprint(f"{p=} {dist(p, player)=} {dist(p, me, acc)=}")
+                        is_cell_safe = False
                         break
                 
-                if continue_q:
+                if not is_cell_safe:
+                    pprint(f"    continue")
                     continue
 
                 # cell accessible
                 if not p in acc:
                     acc[p] = []
                 acc[p].append(p)
+                # pprint(f"{p=} {acc[p]=}1")
 
                 x, y = p
-                l = [(x+1, y), (x-1, y), (x, y+1), (x, y-1)]
+                l = [(x+1, y), (x-1, y), (x, y+1), (x, y-1), (x, y)]
                 for p2 in l:
-                    q.append((p2, acc[p]))
+                    q.append((p2, acc[p].copy()))
             
             else:
                 continue
@@ -240,7 +274,7 @@ def eval_bomb(safe, pos, rang, rounds_nb):
     for q in l:
         x, y = pos
         i = 1
-        # print(f"{rang=}", file=sys.stderr, flush=True)
+        # pprint(f"{rang=}")
         for i in range(rang):
             # check every cell ins a direction until wall or out of range
             p = (x + q[0]*i, y + q[1] * i)
@@ -252,7 +286,7 @@ def eval_bomb(safe, pos, rang, rounds_nb):
                         # bomb detonating the other: both at the earliest time
                         pass
 
-                    # print(f"{p=}", file=sys.stderr, flush=True)
+                    # pprint(f"{p=}")
                     boom.add(p)
 
                     # add rounds_nb to the set of explosions on the cell
@@ -267,20 +301,20 @@ def eval_bomb(safe, pos, rang, rounds_nb):
                 else:
                     break
 
-    # print(f"eval_bomb", file=sys.stderr, flush=True)
+    # pprint(f"eval_bomb")
     return boxes_nb, boom, safe
 """
 def update_cell_safety(safe, bomb_pos, bomb_range, bomb_rounds_nb):
-    # print(f"ucs {bomb_pos=}", file=sys.stderr, flush=True)
-    # print(f"ucs {safe=}", file=sys.stderr, flush=True)
+    # pprint(f"ucs {bomb_pos=}")
+    # pprint(f"ucs {safe=}")
     # if bomb_pos in safe.keys():
     _, boom, safe = eval_bomb(safe, bomb_pos, bomb_range, bomb_rounds_nb)
-    # print(f"{boom=}", file=sys.stderr, flush=True)
+    # pprint(f"{boom=}")
         # for boom_pos in boom:
         #     if boom_pos in safe:
         #         safe.pop(boom_pos)
 
-    # print(f"ucs {safe=}", file=sys.stderr, flush=True)
+    # pprint(f"ucs {safe=}")
     return safe
 """
 def find_safe_cells(safe, bombs):
@@ -288,21 +322,21 @@ def find_safe_cells(safe, bombs):
         # safe by default
         safe[k] = set()
     
-    # print(f"{safe=}", file=sys.stderr, flush=True)
+    # pprint(f"{safe=}")
     if (bombs):
         # bombs_pos = set([bomb.pos for bomb in bombs])
 
         # find safe cells from bomb
         # acc & bombs: bombs on accessible cells
-        # print(f"bombs: {acc.keys() & bombs.keys()}", file=sys.stderr, flush=True)
-        # print(acc, file=sys.stderr, flush=True)
+        # pprint(f"bombs: {acc.keys() & bombs.keys()}")
+        # pprint(acc)
         
         # remove bombs from safe cells
         # for bomb_pos in bombs_pos:
         #     if bomb_pos in safe:
         #         safe.pop(bomb_pos)
         # safe = safe - bombs_pos
-        # print(f"{safe=}", file=sys.stderr, flush=True)
+        # pprint(f"{safe=}")
         
         # update bomb timers if chain reactions
         # for this, use a set of bombs to update: if a bomb has its rounds decreased, it is re-added to the set
@@ -313,7 +347,7 @@ def find_safe_cells(safe, bombs):
         while bombs_to_update:
             pos = bombs_to_update.pop()
             bomb = bombs[pos]
-            # print(f"{pos=}", file=sys.stderr, flush=True)
+            # pprint(f"{pos=}")
             
             _, boom, _ = eval_bomb(safe, pos, bomb.range, bomb.rounds_nb)
 
@@ -322,7 +356,7 @@ def find_safe_cells(safe, bombs):
                     # bomb at "pos" detonated another bomb at "p"
                     if bomb.rounds_nb < bombs[p].rounds_nb:
                         # bomb at "p" will detonate earlier, needs updating
-                        print(f"{p=} {bomb.rounds_nb=} {bombs[p].rounds_nb=}", file=sys.stderr, flush=True)
+                        pprint(f"{p=} {bomb.rounds_nb=} {bombs[p].rounds_nb=}")
                         bombs[p].rounds_nb = bomb.rounds_nb
                         bombs_to_update.add(p)
 
@@ -331,40 +365,51 @@ def find_safe_cells(safe, bombs):
         for pos, bomb in bombs.items():
             _, _, safe = eval_bomb(safe, pos, bomb.range, bomb.rounds_nb)
 
-    # print(f"{safe=}", file=sys.stderr, flush=True)
+    # pprint(f"{safe=}")
     return safe
 
 def find_best_bomb_placement(acc, safe):
     best = Object()
     best.val = 0
     best.pos = me.pos
-    # print(f"1{[cell for cell in acc]=}", file=sys.stderr, flush=True)
+    # pprint(f"1{[cell for cell in acc]=}")
     # a = [cell for cell in safe if safe[cell] == set()]
-    # print(f"1{a}", file=sys.stderr, flush=True)
+    # for cell, path in acc.items():
+    #     pprint(f"{cell} {path}")
+        
     for pos in [cell for cell in acc if not safe[cell]]:
         # for every safe cell, check bomb placement breaking most boxes and leaving safe cell
         # pos = me.pos
         # bombs.add(pos)
-        # print(f"{pos=} {acc.keys()=} {safe.keys()=}", file=sys.stderr, flush=True)
+        # pprint(f"{pos=} {acc.keys()=} {safe.keys()=}")
         boxes_nb, boom, safe = eval_bomb(safe, pos, me.bomb_range, 0)
-        # print(f"{pos=} {safe.keys()=} {boom=}", file=sys.stderr, flush=True)
+        # pprint(f"{pos=} {safe.keys()=} {boom=}")
 
-        is_safe_cell_accessible = safe.keys() - boom
+        safe_cells = safe.keys() - boom
+        is_safe_cell_accessible = [cell for cell in safe_cells if len(acc[cell]) < 8]
         if is_safe_cell_accessible:
+            # pprint(f"{pos=} safe={safe.keys() - boom}")
+
             # value is better with more boxes
             cur_val = boxes_nb
 
             if cur_val > 0:
-                # distance malus
-                # malus = 1 if 1 bomb and  x dist
-                # malus = 2 if 2 bomb and  x dist
-                # malus = 2 if 1 bomb and 2x dist
-                malus = dist(pos, me, acc) * me.bomb_total / 4
+                # distance malus = dist * rounds / x
+                # - malus = 1 if 1 bomb and 4 dist
+                # - malus = 2 if 2 bomb and 4 dist
+                # - malus = 2 if 1 bomb and 8 dist
+                # - malus = 1 if 1 bomb and 6 dist but 2 rounds until next bomb
+                # distance is reduced by rounds until next bomb
+                malus_dist = max(dist(pos, me, acc) - me.next_bomb_in, 0)
+                malus = malus_dist * me.bomb_available / 4
 
                 cur_val = max(cur_val - malus, 0.1)
-                print(f"{pos=} {cur_val=} {malus=} d={dist(pos, me, acc)} bt={me.bomb_total}", file=sys.stderr, flush=True)
+                # pprint(f"{pos=} {cur_val=} {malus=} d={dist(pos, me, acc)} bt={me.bomb_total}")
+                # if dist(pos, me, acc) != len(acc[pos]):
+                #     pprint(f"aaaaaaaaaaaaaaaa d={dist(pos, me, acc)} d2={len(acc[pos])}")
+                
 
-            # print(f"{pos=} {safe.keys() - boom=}", file=sys.stderr, flush=True)
+            # pprint(f"{pos=} {safe.keys() - boom=}")
             if cur_val > best.val:
                 # most boxes broken yet
                 best.val = cur_val
@@ -379,16 +424,16 @@ def find_best_bomb_placement(acc, safe):
 
 def move_to(pos, safe):
     # pathfind to pos, find the next cell
-    print(f"move_to target {pos=}", file=sys.stderr, flush=True)
-    # print(f"move_to target {acc=}", file=sys.stderr, flush=True)
+    pprint(f"move_to target {pos=}")
+    # pprint(f"move_to target {acc=}")
     if pos in acc and acc[pos]:
-        print(f"death here, recalculating... {safe[pos]=}", file=sys.stderr, flush=True)
         if 2 in safe[pos]:
+            pprint(f"death1 here, recalculating... {safe[pos]=}")
             for p in acc:
                 if acc[p] == 1 and 2 not in safe[p]:
                     return p
         else:
-            print(f"move_to {acc[pos]=}", file=sys.stderr, flush=True)
+            pprint(f"move_to {acc[pos]=}")
             
             # if me.pos == (0,4):
             #     return (0,4)
@@ -396,7 +441,7 @@ def move_to(pos, safe):
             return acc[pos][0]
     else:
         if 2 in safe[pos]:
-            print(f"death here, recalculating... {safe[pos]=}", file=sys.stderr, flush=True)
+            pprint(f"death2 here, recalculating... {safe[pos]=}")
             for p in acc:
                 if len(acc[p]) == 1 and 2 not in safe[p]:
                     return p
@@ -420,13 +465,13 @@ while True:
             grid[(i, j)] = row[j]
             # safe[(i, j)] = set()
 
-        # print(row, file=sys.stderr, flush=True)
+        # pprint(row)
 
     # fill me.pos and bombs
     entities = int(input())
     for i in range(entities):
         entity_type, owner, x, y, param_1, param_2 = [int(j) for j in input().split()]
-        # print_entity(entity_type, owner, x, y, param_1, param_2)
+        # pprint_entity(entity_type, owner, x, y, param_1, param_2)
 
         pos = (y, x)
 
@@ -437,7 +482,10 @@ while True:
                 me.bomb_range = param_2
                 # me.bomb_placed = 0
                 me.bomb_total = param_1 # will add bombs placed
-                me.next_bomb_in = 100 # will add my earliest exploding bomb
+                if me.bomb_available:
+                    me.next_bomb_in = 0
+                else:
+                    me.next_bomb_in = 100 # will add my earliest exploding bomb
 
             else:
                 player = Object()
@@ -456,16 +504,16 @@ while True:
                 me.bomb_total += 1
                 me.next_bomb_in = min(me.next_bomb_in, bomb.rounds_nb)
 
-    # print("", file=sys.stderr, flush=True)
+    # pprint("")
 
     # find unsafe cells
     safe = find_safe_cells(safe, bombs)
-    # print(f"{safe=}", file=sys.stderr, flush=True)
+    # pprint(f"{safe=}")
     
     # find accessible cells
     acc = bfs(me.pos, safe)
-    print(f"{len(acc)=}", file=sys.stderr, flush=True)
-    # print(f"{acc=}", file=sys.stderr, flush=True)
+    pprint(f"{len(acc)=}")
+    # pprint(f"{acc=}")
     
     # accessible and not unsafe are safe
     for cell in acc:
@@ -478,26 +526,26 @@ while True:
 
     # find the bomb breaking most boxes and while leaving safe cell
     best, safe = find_best_bomb_placement(acc, safe)
-    print(f"{best.val=}", file=sys.stderr, flush=True)
-    print(f"{best.pos=}", file=sys.stderr, flush=True)
-    # print(f"{safe=}", file=sys.stderr, flush=True)
+    pprint(f"{best.val=}")
+    pprint(f"{best.pos=}")
+    # pprint(f"{safe=}")
 
     # temp condition : only 1 bomb at a time
     # if best.val > 0 and me.bomb_available and me.pos == best.pos and not me.bomb_placed:
     if best.val > 0 and me.bomb_available and me.pos == best.pos:
         # place bomb, calculate next best bomb placement and run to it
         _, _, safe = eval_bomb(safe, me.pos, me.bomb_range, 8)
-        print(f"{safe=}", file=sys.stderr, flush=True)
+        pprint(f"{safe=}")
         best, safe = find_best_bomb_placement(acc, safe)
-        print(f"{safe=}", file=sys.stderr, flush=True)
-        print(f"{best.val=}", file=sys.stderr, flush=True)
-        print(f"{best.pos=}", file=sys.stderr, flush=True)
+        pprint(f"{safe=}")
+        pprint(f"{best.val=}")
+        pprint(f"{best.pos=}")
         y, x = move_to(best.pos, safe)
         print(f"BOMB {x} {y}")
     elif best.pos in safe and safe[best.pos] == set():
         y, x = move_to(best.pos, safe)
-        print(f"{safe=}", file=sys.stderr, flush=True)
-        print(f"move best", file=sys.stderr, flush=True)
+        pprint(f"{safe=}")
+        pprint(f"move best")
         print(f"MOVE {x} {y}")
     else:
         # find closest safe cell
@@ -509,33 +557,33 @@ while True:
             # if safe_cells:
             #     y, x = move_to(sorted(safe_cells)[0])
             # else:
-            #     print(f"DEATH!!!!!!!!!", file=sys.stderr, flush=True)
+            #     pprint(f"DEATH!!!!!!!!!")
             y, x = move_to(me.pos, safe)
 
-        print(f"{safe=}", file=sys.stderr, flush=True)
-        print(f"{sorted(safe)=}", file=sys.stderr, flush=True)
-        print(f"move closest", file=sys.stderr, flush=True)
+        pprint(f"{safe=}")
+        pprint(f"{sorted(safe)=}")
+        pprint(f"move closest")
         print(f"MOVE {x} {y}")
     # if me.pos not in safe:
     #     # current cell is not safe, run to a safe cell
     #     x, y = sorted(safe)[0]
-    #     print(f"not safe", file=sys.stderr, flush=True)
-    #     print(f"MOVE {x} {y}")
+    #     pprint(f"not safe")
+    #     pprint(f"MOVE {x} {y}")
     # else:
     #     if me.bomb_available:
     #         # safe cells exist after placing, so place bomb and run to safety
     #         if safe:
     #             x, y = best.pos
-    #             print(f"safe after place, bomb val={boxes_nb}", file=sys.stderr, flush=True)
-    #             print(f"BOMB {x} {y}")
+    #             pprint(f"safe after place, bomb val={boxes_nb}")
+    #             pprint(f"BOMB {x} {y}")
     #         else:
     #             x, y = me.pos
-    #             print(f"not safe after place", file=sys.stderr, flush=True)
-    #             print(f"MOVE {x} {y}")
+    #             pprint(f"not safe after place")
+    #             pprint(f"MOVE {x} {y}")
     #     else:
     #         x, y = me.pos
-    #         print(f"wait for bomb available", file=sys.stderr, flush=True)
-            # print(f"MOVE {x} {y}")
+    #         pprint(f"wait for bomb available")
+            # pprint(f"MOVE {x} {y}")
 
 
 
