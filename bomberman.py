@@ -348,18 +348,32 @@ def find_best_bomb_placement(acc, safe):
         # print(f"{pos=} {acc.keys()=} {safe.keys()=}", file=sys.stderr, flush=True)
         boxes_nb, boom, safe = eval_bomb(safe, pos, me.bomb_range, 0)
         # print(f"{pos=} {safe.keys()=} {boom=}", file=sys.stderr, flush=True)
-        if safe.keys() - boom:
-            # safe cell found
+
+        is_safe_cell_accessible = safe.keys() - boom
+        if is_safe_cell_accessible:
+            # value is better with more boxes
+            cur_val = boxes_nb
+
+            if cur_val > 0:
+                # distance malus
+                # malus = 1 if 1 bomb and  x dist
+                # malus = 2 if 2 bomb and  x dist
+                # malus = 2 if 1 bomb and 2x dist
+                malus = dist(pos, me, acc) * me.bomb_total / 4
+
+                cur_val = max(cur_val - malus, 0.1)
+                print(f"{pos=} {cur_val=} {malus=} d={dist(pos, me, acc)} bt={me.bomb_total}", file=sys.stderr, flush=True)
+
             # print(f"{pos=} {safe.keys() - boom=}", file=sys.stderr, flush=True)
-            if boxes_nb > best.val:
-                # most boxes broen yet
-                best.val = boxes_nb
+            if cur_val > best.val:
+                # most boxes broken yet
+                best.val = cur_val
                 best.pos = pos
 
-            elif boxes_nb == best.val and pos in acc and best.pos in acc and len(acc[pos]) < len(acc[best.pos]):
-                # same number of boxes but closer cell
-                best.val = boxes_nb
-                best.pos = pos
+            # elif boxes_nb == best.val and pos in acc and best.pos in acc and len(acc[pos]) < len(acc[best.pos]):
+            #     # same number of boxes but closer cell
+            #     best.val = boxes_nb
+            #     best.pos = pos
     
     return best, safe
 
@@ -419,24 +433,28 @@ while True:
         if entity_type == 0:
             if owner == my_id:
                 me.pos = pos
-                me.bomb_available = param_1 > 0
+                me.bomb_available = param_1
                 me.bomb_range = param_2
-                me.bomb_placed = False
+                # me.bomb_placed = 0
+                me.bomb_total = param_1 # will add bombs placed
+                me.next_bomb_in = 100 # will add my earliest exploding bomb
+
             else:
                 player = Object()
                 player.pos = pos
-                player.bomb_available = param_1 > 0
+                player.bomb_available = param_1
                 players[pos] = player
 
         if entity_type == 1:
-            if owner == my_id:
-                me.bomb_placed = True
-
             bomb = Object()
             bomb.pos = pos
             bomb.rounds_nb = param_1
             bomb.range = param_2
             bombs[pos] = bomb
+
+            if owner == my_id:
+                me.bomb_total += 1
+                me.next_bomb_in = min(me.next_bomb_in, bomb.rounds_nb)
 
     # print("", file=sys.stderr, flush=True)
 
