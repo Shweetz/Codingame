@@ -41,6 +41,12 @@ def is_safe(pos, safe, path):
     # pprint(f"is_safe {pos=} r={not pos in safe or not len(path)+1 in safe[pos]}")
     return not pos in safe or not len(path)+1 in safe[pos]
 
+def need_stop_bfs(visible, acc, inacc):
+    for v in visible:
+        if not v in acc and not v in inacc:
+            return False
+    return True
+
 """
 def dfs(pos, acc, inacc):
     x, y = pos
@@ -140,21 +146,33 @@ def bfs(pos, safe):
 """
 
 def bfs(pos, safe):
+    # visible is a cell that needs determine if accessible or not
+    visible = set([pos])
     acc = {}
-    # steps = 0
+    inacc = set()
+    q_done = set()
 
+    # steps = 0
+    # pprint(f"bfs {safe=}")
     q = [(pos, [])]
     # pprint(f"bfs {bombs=} {p not in bombs=} {not bombs=}")
 
     while q:
         # to break the outer while
         # continue_q = False
+
+        if need_stop_bfs(visible, acc, inacc):
+            # all shortest paths found
+            break
     
         p, path = q.pop(0)
-        if path and path[0] == ((0, 11)):
-            pprint(f"bfs {p=} {path=}")
+        if ((p, tuple(path)) in q_done) or len(path) > 7:
+            continue
+        q_done.add((p, tuple(path)))
+        # if path and path[0] == ((0, 11)):
+        #     pprint(f"bfs {p=} {path=}")
 
-        if p in grid and not p in acc:
+        if p in grid:
             # unexplored cell in grid
             # pprint(f"bfs {grid[p]=} {p not in bombs=} {not bombs=}")
 
@@ -163,7 +181,8 @@ def bfs(pos, safe):
             is_cell_safe = is_safe(p, safe, path)
 
             if p == pos:
-                acc[p] = path
+                if not p in acc:
+                    acc[p] = path
 
                 # my pos: 1 step because can stay here if not inacc
                 # if p in safe and not dist(p, me, acc)+1 in safe[p]:
@@ -173,82 +192,94 @@ def bfs(pos, safe):
                 x, y = p
                 l = [(x+1, y), (x-1, y), (x, y+1), (x, y-1)]
                 for p2 in l:
+                    visible.add(p2)
                     q.append((p2, []))
 
-            elif grid[p] == "." and not is_target_reached and not is_locked_by_bomb:
-                # not wall or crate or bomb (bomb placed still accessible until leaving cell)
-                acc[p] = path
-                # pprint(f"{p=} {acc[p]=}2")
-
-                is_last_cell_safe = path and  is_safe(path[-1], safe, path)
-
-                # if pos == (8,8) and p == (9,8) and p in safe and p in acc:
-                #     pprint(f"{safe[p]=}")
-                #     pprint(f"{len(acc[p])=}")
+            elif grid[p] == ".":
+                if is_target_reached and not p in acc:
+                    acc[p] = path
+                    pprint(f"bfs {p=} {acc[p]}")
+                #     continue
                     
-                # cell considered inacc if explodes in the number of moves to reach it
-                # while p in safe and len(acc[p])+2 in safe[p]:
-                # while p in safe and dist(p, me, acc)+1 in safe[p]:
-                #     # wait 1 round: re-add the last cell in path if accessible
-                #     if path and path[-1] in safe and not dist(p, me, acc)+1 in safe[path[-1]]:
-                #         # acc[p].append(path[-1])
-                #         q.append((p, acc[p] + p))
-                #     else:
-                #         continue_q = True
-                #         break
+                if not is_target_reached and not is_locked_by_bomb:
+                    # not wall or crate or bomb (bomb placed still accessible until leaving cell)
+                    # if not p in acc:
+                    #     acc[p] = path
+                    # pprint(f"{p=} {acc[p]=}2")
 
-                # if continue_q:
-                #     continue
-                # wait 1 round: re-add the last cell in path if accessible
-                # if not is_cell_safe and is_last_cell_safe:
-                #     acc[p].append(path[-1])
-                #     q.append((p, acc[p]))
-                #     pprint(f"    continue")
-                #     continue
-                if is_last_cell_safe:
-                    q.append((p, acc[p] + [path[-1]]))
+                    is_last_cell_safe = path and is_safe(path[-1], safe, path)
 
+                    # if pos == (8,8) and p == (9,8) and p in safe and p in acc:
+                    #     pprint(f"{safe[p]=}")
+                    #     pprint(f"{len(acc[p])=}")
+                        
+                    # cell considered inacc if explodes in the number of moves to reach it
+                    # while p in safe and len(acc[p])+2 in safe[p]:
+                    # while p in safe and dist(p, me, acc)+1 in safe[p]:
+                    #     # wait 1 round: re-add the last cell in path if accessible
+                    #     if path and path[-1] in safe and not dist(p, me, acc)+1 in safe[path[-1]]:
+                    #         # acc[p].append(path[-1])
+                    #         q.append((p, acc[p] + p))
+                    #     else:
+                    #         continue_q = True
+                    #         break
+
+                    # if continue_q:
+                    #     continue
+                    # wait 1 round: re-add the last cell in path if accessible
+                    # if not is_cell_safe and is_last_cell_safe:
+                    #     acc[p].append(path[-1])
+                    #     q.append((p, acc[p]))
+                    #     pprint(f"    continue")
+                    #     continue
+                    if is_last_cell_safe:
+                        q.append((p, path + [path[-1]]))
+
+                        # if not is_cell_safe:
+                        #     acc[p].append(path[-1])
+                    
                     if not is_cell_safe:
-                        acc[p].append(path[-1])
-                
-                if not is_cell_safe:
-                    pprint(f"    continue")
-                    continue
-                
-                # cell considered inacc if a player is on it with bomb available and more than 1 cell from us
-                # if p in players and players[p].bomb_available and len(acc[p]) > 0:
-                #     pprint("in")
-                #     pprint(f"{players[p].bomb_available=}")
-                #     pprint(f"{len(acc[p])=}")
-                #     continue
+                        pprint(f"    continue1 {p=} {visible - acc.keys() - inacc}")
+                        continue
+                    
+                    # cell considered inacc if a player is on it with bomb available and more than 1 cell from us
+                    # if p in players and players[p].bomb_available and len(acc[p]) > 0:
+                    #     pprint("in")
+                    #     pprint(f"{players[p].bomb_available=}")
+                    #     pprint(f"{len(acc[p])=}")
+                    #     continue
 
-                # cell considered inacc if a player can get to it faster than me
-                # todo: only true if he has a bomb available or will get one before i reach the cell
-                for _, player in players.items():
-                    # pprint(f"")
-                    if dist(p, player)+1 < dist(p, me, acc) and dist(p, player) < 4:
-                        # pprint(f"{p=} {dist(p, player)=} {dist(p, me, acc)=}")
-                        is_cell_safe = False
-                        break
-                
-                if not is_cell_safe:
-                    pprint(f"    continue")
-                    continue
+                    # cell considered inacc if a player can get to it faster than me
+                    # todo: only true if he has a bomb available or will get one before i reach the cell
+                    for _, player in players.items():
+                        # pprint(f"")
+                        if dist(p, player)+1 < dist(p, me, acc) and dist(p, player) < 4:
+                            # pprint(f"{p=} {dist(p, player)=} {dist(p, me, acc)=}")
+                            is_cell_safe = False
+                            inacc.add(p)
+                            break
+                    
+                    if not is_cell_safe:
+                        pprint(f"    continue2 {p=}")
+                        continue
 
-                # cell accessible
-                if not p in acc:
-                    acc[p] = []
-                acc[p].append(p)
-                # pprint(f"{p=} {acc[p]=}1")
+                    # cell accessible
+                    # if not p in acc:
+                    #     acc[p] = []
+                    # acc[p].append(p)
+                    # pprint(f"{p=} {acc[p]=}1")
 
                 x, y = p
                 l = [(x+1, y), (x-1, y), (x, y+1), (x, y-1), (x, y)]
                 for p2 in l:
-                    q.append((p2, acc[p].copy()))
+                    q.append((p2, path + [p]))
+                    visible.add(p2)
             
             else:
+                inacc.add(p)
                 continue
-
+        else:
+            inacc.add(p)
 
     return acc
 
@@ -374,8 +405,8 @@ def find_best_bomb_placement(acc, safe):
     best.pos = me.pos
     # pprint(f"1{[cell for cell in acc]=}")
     # a = [cell for cell in safe if safe[cell] == set()]
-    # for cell, path in acc.items():
-    #     pprint(f"{cell} {path}")
+    for cell, path in acc.items():
+        pprint(f"{cell} {path}")
         
     for pos in [cell for cell in acc if not safe[cell]]:
         # for every safe cell, check bomb placement breaking most boxes and leaving safe cell
