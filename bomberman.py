@@ -359,19 +359,23 @@ def find_best_bomb_placement(acc, safe):
     best.pos = me.pos
     # pprint(f"1{[cell for cell in acc]=}")
     # a = [cell for cell in safe if safe[cell] == set()]
-    for cell, path in acc.items():
-        pprint(f"{cell} {path}")
+    # for cell, path in acc.items():
+    #     pprint(f"find_best {cell} {path}")
+    pprint(f"find_best {bombs.keys()=}")
         
-    for pos in [cell for cell in acc if not safe[cell]]:
+    for pos in [cell for cell in acc if not cell in bombs or not bombs[cell]]:
         # for every safe cell, check bomb placement breaking most boxes and leaving safe cell
         # pos = me.pos
         # bombs.add(pos)
-        # pprint(f"{pos=} {acc.keys()=} {safe.keys()=}")
+        # pprint(f"{pos=} {bombs} {safe.keys()=}")
         boxes_nb, boom, safe = eval_bomb(safe, pos, me.bomb_range, 0)
         # pprint(f"{pos=} {safe.keys()=} {boom=}")
 
+        rounds_before_boom = 100
+        if pos in safe and safe[pos] != set():
+            rounds_before_boom = min(safe[pos])
         safe_cells = safe.keys() - boom
-        is_safe_cell_accessible = [cell for cell in safe_cells if len(acc[cell]) < 8]
+        is_safe_cell_accessible = [cell for cell in safe_cells if cell in acc and len(acc[cell]) < rounds_before_boom]
         if is_safe_cell_accessible:
             # pprint(f"{pos=} safe={safe.keys() - boom}")
 
