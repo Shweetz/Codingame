@@ -142,10 +142,10 @@ while i < width * height:
             d = dir[i][j]
 
             # ball movement must be perpendicular to previous one
-            if j > 0 and dir[i][j] % 2 == dir[i][j-1] % 2:
-                try_next(i, j)
-                is_ok = False
-                break
+            # if j > 0 and dir[i][j] % 2 == dir[i][j-1] % 2:
+            #     try_next(i, j)
+            #     is_ok = False
+            #     break
             
             # if not is_ok:
             #     break
@@ -218,6 +218,8 @@ for k, v in grid_2d.items():
 line = "".join(grid_2d.values())
 print("\n".join([line[i:i+width] for i in range(0, len(line), width)]))
 
+# print(">>>..v")
+# print(".>>>.v")
 
 """
 
