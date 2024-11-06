@@ -80,7 +80,7 @@ def try_next(i, j):
         try_next(i, 0)
 
     pprint(f"try_next to : {i=}, {j=}, {dir[i]=}")
-    pprint_grid()
+    # pprint_grid()
 
 
 grid = {}
@@ -118,6 +118,8 @@ pprint("")
 i = 0
 states[0] = grid.copy()
 is_ok = True
+nb_cur = -1
+r, c = 0, 0
 
 # for k, v in grid.items():
     # pprint(k)
@@ -129,8 +131,9 @@ while i < width * height:
         is_ok = True
         reached_hole = False
         nb = int(grid[i])
-        nb_cur = nb
-        r, c = i_to_pos(i)
+        if nb_cur == -1:
+            nb_cur = nb
+            r, c = i_to_pos(i)
 
         while is_ok and not reached_hole:
             actions.append([])
@@ -147,22 +150,22 @@ while i < width * height:
             # if not is_ok:
             #     break
 
-            pprint(f"{nb_cur=}")
-            pprint(f"{d=}")
+            # pprint(f"{nb_cur=}")
+            # pprint(f"{d=}")
             # r, c = i_to_pos(i)
             # mark the way with arrows
             for n in range(nb_cur):
-                pprint(f"{n=}")
+                # pprint(f"{n=}")
                 sym, pos = get_sym_pos(d, r, c, n)
-                pprint(f"1{pos=}")
-                if grid_2d[pos] in [".", "H", "X"] or n == 0:
-                    pprint(f"{sym=}")
+                # pprint(f"1{pos=}")
+                if pos in grid_2d and grid_2d[pos] in [".", "H", "X"] or n == 0:
+                    # pprint(f"{sym=}")
                     grid_2d[pos] = sym
                     actions[-1].append(pos)
                 else:
                     is_ok = False
-                    pprint_grid()
                     pprint(f"error on the way: ")
+                    pprint_grid()
                     try_next(i, j)
                     break
             
@@ -172,14 +175,14 @@ while i < width * height:
             # mark landing with "." or "F"
             _, pos = get_sym_pos(d, r, c, nb_cur)
             land = pos_to_i(*pos)
-            pprint(f"{pos=}")
+            # pprint(f"{pos=}")
 
             if pos in grid_2d and grid_2d[pos] in [".", "H"]:
                 r, c = i_to_pos(land)
                 # pprint(f"{(r,c)=}")
                 # pprint(f"{land=}")
                 grid_2d[(r, c)] = "."
-                pprint_grid()
+                # pprint_grid()
 
                 if grid[land] == "H":
                     reached_hole = True
@@ -202,9 +205,11 @@ while i < width * height:
 
     if is_ok:
         i += 1
+        nb_cur = -1
+
     is_ok = True
 
-    pprint_grid()
+    # pprint_grid()
 
 for k, v in grid_2d.items():
     if v in ["X", "F"]:
