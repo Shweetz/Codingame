@@ -8,13 +8,13 @@ class Cell:
     dir = 0
 
 def pprint(str, file=sys.stderr, flush=True):
-    if True:
+    if 10 <= i < 20:
         pass
         print(str, file=sys.stderr, flush=True)
     else:
         pass
 
-def pprint_grid():    
+def pprint_grid():
     line = "".join(grid_2d.values())
     pprint("\n".join([line[i:i+width] for i in range(0, len(line), width)]))
     pprint("")
@@ -44,26 +44,46 @@ def get_sym_pos(dir, r, c, n):
     if dir == 1: return "v", (r+n, c)
     if dir == 2: return "<", (r, c-n)
     if dir == 3: return "^", (r-n, c)
+    pprint(f"")
+    pprint(f"ERROR {dir=}")
+    pprint(f"")
     return "", 0
     
 def try_next(i, j):
-    pprint(f"try_next from {i=}, {j=}, {dir[i]=}")
-
+    """
+    Backtrack and try next possibility
+    j = -1 means ball backtrack, so try previous ball from final move
+    """
     if is_ball(i):
+        pprint(f"try_next from {i=}, {j=}, {dir[i]=}")
         # pprint(f"try_next, {actions[-1]=}")
+
+        if j == -1:
+            # start backtracking ball from final move
+            j = len(dir[i]) - 1
+
+        while not (i, j) in actions:
+            if j >= 0:
+                pprint(f"{(i, j)=}")
+                j -= 1
+            else:
+                pprint(f"error, {j=}")
+
         # restore cells
-        for cell in actions[-1]:
-            # pprint(f"try_next, {cell=}")
+        # pprint(f"{actions[-1]=}")
+        pprint(f"{actions[(i, j)]=}")
+        for cell in actions[(i, j)]:
+            pprint(f"try_next, {cell=}")
             grid_2d[cell] = grid[pos_to_i(*cell)]
-        actions.pop()
+        actions.pop((i, j))
 
         # j = len(dir[i]) - 1
         # try to +1 the last non-max elem in dir[i][j], then in dir[i], then in dir[]
-        if dir[i][j] < 4:
+        if dir[i][j] < 3:
             # try next direction
             dir[i][j] += 1
 
-        elif dir[i][j] == 4:
+        elif dir[i][j] == 3:
             # backtrack
 
             # restore dir
@@ -71,16 +91,19 @@ def try_next(i, j):
 
             if j > 0:
                 # try same ball, last turn
-                try_next(i, j-1)
+                i, j = try_next(i, j-1)
             else:
                 # try last cell
-                try_next(i, 0)
+                i, j = try_next(i-1, -1)
+        pprint(f"try_next to : {i=}, {j=}, {dir[i]=}")
+        
     else:
         # cell is not ball, try last cell
-        try_next(i, 0)
+        i, j = try_next(i-1, -1)
 
-    pprint(f"try_next to : {i=}, {j=}, {dir[i]=}")
     # pprint_grid()
+    pprint(f"try_next {i=}, {j=}")
+    return i, j
 
 
 grid = {}
@@ -89,7 +112,7 @@ grid_2d = {}
 dir = {}
 dir_e = [">", "v", "<", "^"]
 states = {}
-actions = []
+actions = {}
 
 width, height = [int(i) for i in input().split()]
 for i in range(height):
@@ -136,10 +159,11 @@ while i < width * height:
             r, c = i_to_pos(i)
 
         while is_ok and not reached_hole:
-            actions.append([])
-
             j = nb - nb_cur
+            pprint(f"{j=} {nb=} {nb_cur=}")
             d = dir[i][j]
+            # actions.append([])
+            actions[(i, j)] = []
 
             # ball movement must be perpendicular to previous one
             # if j > 0 and dir[i][j] % 2 == dir[i][j-1] % 2:
@@ -161,12 +185,13 @@ while i < width * height:
                 if pos in grid_2d and grid_2d[pos] in [".", "H", "X"] or n == 0:
                     # pprint(f"{sym=}")
                     grid_2d[pos] = sym
-                    actions[-1].append(pos)
+                    actions[(i, j)].append(pos)
                 else:
                     is_ok = False
                     pprint(f"error on the way: ")
                     pprint_grid()
-                    try_next(i, j)
+                    i, j = try_next(i, j)
+                    nb_cur = nb - j
                     break
             
             if not is_ok:
@@ -192,7 +217,8 @@ while i < width * height:
                 is_ok = False
                 pprint(f"error on landing: ")
                 pprint_grid()
-                try_next(i, j)
+                i, j = try_next(i, j)
+                nb_cur = nb - j
             
             # if not is_ok:
                 break
