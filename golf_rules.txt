@@ -1,0 +1,50 @@
+ 	Objectif
+Winamax propose maintenant de faire des paris sportifs.
+En attendant les résultats du tournoi de golf, vous décidez d'écrire un programme capable de simuler les coups à effectuer sur un parcours de golf afin d'économiser au mieux le temps et l'effort à dépenser pendant la partie.
+ 	Règles
+Dans cet exercice, on vous donne une grille représentant un parcours de golf.
+Sur chaque parcours se trouve une certaine quantité de balles et une quantité égale de trous. L'objectif est de tracer le trajet de chaque balle vers un trou différent sans que les trajets ne se croisent.
+
+Votre programme doit afficher la solution unique du parcours.
+
+Pour chaque parcours est donné le nombre de colonnes et de lignes. Chaque case est représentée par un caractère.
+Une case peut être :
+Un point . pour une cellule vide, représentant du gazon.
+Un entier allant de 1 à 9, représentant une balle. La valeur indique son nombre de coups.
+La lettre X, représentant un obstacle d'eau.
+La lettre H, représentant un trou.
+Une balle peut être tapée plusieurs fois, autant que son nombre de coups.
+
+Votre programme doit afficher sur la sortie standard une grille de taille égale à celle donnée en entrée, contenant des flèches indiquant comment les balles doivent être tapées.
+Une flèche est représenté par une série de cases contenant une direction.
+Les quatre directions sont représentées par les caractères v, <, > et ^ (respectivement bas, gauche, droite et haut).
+
+Pour représenter le mouvement d'une balle, une flèche doit commencer là où se trouvait la balle et s'arrêter juste avant la case où la balle atterrit.
+Vous devez afficher uniquement les flèches, utilisez des caractères point . pour toute autre case.
+
+Les flèches ne doivent pas croiser l'emplacement de balles, de trous ou d'autres flèches.
+
+Le nombre de coups d'une balle indique aussi le nombre de cases qu'elle traverse la première fois qu'elle bouge. Le prochain coup ira une case moins loin, chaque coup décrémente le nombre de cases que la balle traverse de 1. À chaque nouveau coup la balle pourra être tapée dans une nouvelle direction. Quand le prochain coup devient 0 ou que la balle s'arrête sur une case trou, la balle ne peut plus bouger.
+
+Chaque balle doit atteindre un trou. Un trou peut recevoir au plus 1 balle.
+
+Une balle ne peut pas quitter la grille, ni atterrir dans un obstacle d'eau. Elle peut cependant passer par dessus les obstacles d'eau.
+ 
+Conditions de victoire
+Affichez une grille solution :
+Toute balle doit finir dans un trou en au moins un coup.
+Les flèches ne peuvent se croiser.
+Les flèches ne peuvent croiser les positions ni des balles ni des trous.
+Les flèches ne peuvent amener à un obstacle d'eau.
+Les flèches ne peuvent amener à l'extérieur de la grille.
+ 	Entrées du jeu
+Entrée
+Ligne 1: Deux entiers séparés par des espaces width et height pour la largeur et hauteur de la grille.
+
+Les height prochaines lignes: Une ligne de la grille contenant width caractères.
+
+Sortie
+Les height lignes de la grille solution, contenant des points . pour les cases par lesquelles aucune balle n'est passée ou les caractères v, <, >, ^ pour les flèches.
+Contraintes
+0 < width ≤ 1000
+0 < height ≤ 1000
