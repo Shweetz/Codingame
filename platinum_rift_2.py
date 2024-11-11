@@ -1,4 +1,5 @@
 import collections
+from dataclasses import dataclass
 import math
 import random
 import sys
@@ -8,15 +9,29 @@ class Object: pass
 class Move:
     pods_count = 0
     zone_orig = 0
-    zone_dest = 0 
+    zone_dest = 0
+
+@dataclass
+class Zone:
+    z_id: int = 0
+    owner_id: int = 0
+    my_pods: int = 0
+    en_pods: int = 0
+    visible: int = 0
+    platinum: int = 0
+
+    def values(self):
+        return self.z_id, self.owner_id, self.my_pods, self.en_pods, self.visible, self.platinum
+
 
 def pprint(str, file=sys.stderr, flush=True):
     # if 0 <= i < 100:
     if True:
         pass
-    else:
         print(str, file=sys.stderr, flush=True)
+    else:
         pass
+
 
 # player_count: the amount of players (always 2)
 # my_id: my player ID (0 or 1)
@@ -29,6 +44,7 @@ for i in range(zone_count):
     # platinum_source: Because of the fog, will always be 0
     zone_id, platinum_source = [int(j) for j in input().split()]
 
+# zone links
 links = collections.defaultdict(set)
 for i in range(link_count):
     zone_1, zone_2 = [int(j) for j in input().split()]
@@ -36,12 +52,18 @@ for i in range(link_count):
     links[zone_1].add(zone_2)
     links[zone_2].add(zone_1)
 
+# a pod can stay in its zone, so add zone link to itself
+for link in links:
+    links[link].add(link)
+
 pprint(f"{my_id=} {zone_count=} {link_count=}")
 
 # game loop
 while True:
-    zone_value = {}
-    moves = collections.defaultdict(int)
+    # grab input
+    zone_input = collections.defaultdict(Zone)
+    # assign a value to every zone
+    zone_value = collections.defaultdict(int)
     
     my_platinum = int(input())  # your available Platinum
     for i in range(zone_count):
@@ -53,25 +75,36 @@ while True:
         # platinum: the amount of Platinum this zone can provide (0 if hidden by fog)
         z_id, owner_id, pods_p0, pods_p1, visible, platinum = [int(j) for j in input().split()]
 
-        my_pods, en_pods = (pods_p0, pods_p1) if my_id == 0 else (pods_p1, pods_p0)
+        if my_id == 0:
+            # zone_input[z_id] = owner_id, pods_p0, pods_p1, visible, platinum
+            zone_input[z_id] = Zone(z_id, owner_id, pods_p0, pods_p1, visible, platinum)
+        else:
+            # zone_input[z_id] = owner_id, pods_p1, pods_p0, visible, platinum
+            zone_input[z_id] = Zone(z_id, owner_id, pods_p1, pods_p0, visible, platinum)
+        
+        # zone value
+        zone_value[z_id] += platinum
+        zone_value[z_id] -= zone_input[z_id].my_pods
+        zone_value[z_id] += zone_input[z_id].en_pods
+        if zone_input[z_id].owner_id == -1:
+            zone_value[z_id] += 1
+
+        # if zone_value[z_id] != 1:
+        #     pprint(f"zone_value[{z_id}]={zone_value[z_id]}")
+
+    # decide moves
+    moves = collections.defaultdict(int)
+
+    for k, v in zone_input.items():
+        z_id, owner_id, my_pods, en_pods, visible, platinum = v.values()
 
         if my_pods == 0:
             continue
 
         if my_pods != 0 or platinum != 0:
             pprint(f"{my_pods=} on {z_id=} with {platinum=}")
-        
-        pprint(f"{links[z_id]=}")
-        # zone value for adjacent zones
-        for adj in links[z_id]:
-            if adj not in zone_value: zone_value[adj] = 0
-            if owner_id == -1:
-                zone_value[adj] += platinum + 1
-            elif owner_id != my_id:
-                zone_value[adj] += platinum - en_pods
 
         pprint(f"{links[z_id]=}")
-        pprint(f"{zone_value=}")
         pods_left = my_pods
 
         while pods_left:
@@ -96,15 +129,12 @@ while True:
         # for move in moves:
         #     string += move.pods_count + " " + move.zone_orig + " " + move.zone_dest + " "
         for k, v in moves.items():
-            string += f"{v} {k[0]} {k[1]} "
+            # don't explicitely move a pod to the zone it's already in
+            if k[0] != k[1]:
+                string += f"{v} {k[0]} {k[1]} "
         print(string)
     else:
         print("WAIT")
-
-
-
-
-
 
     # second line no longer used (see the protocol in the statement for details)
     print("WAIT")
